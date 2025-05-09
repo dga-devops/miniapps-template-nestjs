@@ -82,7 +82,7 @@ jobs:
             -v ${SRC_DIR}/test:/usr/src/app/test \
             -v $COVERAGE_DIR:/usr/src/app/coverage \
             --workdir /usr/src/app \
-            "$IMAGE" "npm run test:cov"
+            "$IMAGE" sh -c "npm run test:cov"
 
           echo "coverage-dir=$COVERAGE_DIR" >> $GITHUB_OUTPUT
 

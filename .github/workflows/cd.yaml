@@ -24,12 +24,12 @@ permissions:
 jobs:
   initial:
     name: 🔸 Initial
-    uses: ./.github/workflows/init-vars.yaml
+    uses: dga-devops/miniapps-template-angular/.github/workflows/init-vars.yaml@develop
 
   deploy:
     name: 🔸 Deploy
     needs: [ initial ]
-    uses: ./.github/workflows/deploy.yaml
+    uses: dga-devops/miniapps-template-angular/.github/workflows/deploy.yaml@develop
     with:
       aws-region: ${{ needs.initial.outputs.aws-region }}
       aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}

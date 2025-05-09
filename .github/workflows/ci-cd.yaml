@@ -22,7 +22,7 @@ permissions:
 jobs:
   initial:
     name: 🔸 Initial
-    uses: ./.github/workflows/init-vars.yaml
+    uses: dga-devops/miniapps-template-angular/.github/workflows/init-vars.yaml@develop
 
   test:
     name: 🔸 Test
@@ -53,7 +53,7 @@ jobs:
     name: 📦🚀 Build & Push
     needs: [ initial, test, scan ]
     if: ${{ always() && (needs.initial.outputs.is-build == 'true') && (needs.test.result == 'skipped'|| needs.scan.result == 'success' || needs.initial.outputs.ignore-sonar-quality == 'true') && (needs.test.result != 'failure' ) }}
-    uses: ./.github/workflows/build-push.yaml
+    uses: dga-devops/miniapps-template-angular/.github/workflows/build-push.yaml@develop
     with:
       aws-region: ${{ needs.initial.outputs.aws-region }}
       aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}
@@ -68,7 +68,7 @@ jobs:
     name: 🔸 Deploy
     needs: [ initial, build-push ]
     if: ${{ always() && (needs.initial.outputs.is-deploy == 'true' || needs.build-push.result == 'skipped') }}
-    uses: ./.github/workflows/deploy.yaml
+    uses: dga-devops/miniapps-template-angular/.github/workflows/deploy.yaml@develop
     with:
       aws-region: ${{ needs.initial.outputs.aws-region }}
       aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}
