@@ -140,6 +140,8 @@ jobs:
               if [[ "$merged" == "true" ]]; then
                 isMerge=true
                 isBuild=true
+                isDeploy=true
+          
               fi
             fi
 
@@ -148,12 +150,14 @@ jobs:
               environment=dev
               buildEnv=develop
               imageTag=dev-${shortCommit}
+              isDeploy=true
 
             elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
               environment=uat
               buildEnv=uat
               imageTag=uat-${shortCommit}
-
+              isDeploy=true
+          
             elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
               tagName="${GITHUB_REF#refs/tags/}"
               isTag=true
