@@ -22,7 +22,7 @@ run-test:
 		-v $(shell pwd)/source/src:/usr/src/app/src \
 		-v $(shell pwd)/source/test:/usr/src/app/test \
 		--workdir /usr/src/app \
- 		$(REGISTRY)/$(NAME):testimage-latest
+ 		$(REGISTRY)/$(NAME):testimage-latest sh
 
 run:
 	docker run -it --rm -p 3000:3000 $(REGISTRY)/$(NAME):latest
