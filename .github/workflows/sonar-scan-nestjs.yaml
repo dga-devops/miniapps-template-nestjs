@@ -1,0 +1,78 @@
+name: 🔍 SonarQube Scan Angular
+
+on:
+  workflow_call:
+    inputs:
+      ignore-sonar-quality:
+        required: false
+        type: boolean
+        default: false
+      source-code-directory:
+        required: false
+        type: string
+        default: "."
+      sonar-project-key:
+        required: true
+        type: string
+      sonar-host-url:
+        required: true
+        type: string
+    secrets:
+      sonar-token:
+        required: true
+
+jobs:
+  sonar-scan:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: 📋 Log SonarQube Inputs
+        run: |
+          echo "🔧 Ignore Sonar Quality Gate : ${{ inputs.ignore-sonar-quality }}"
+          echo "📁 Source Code Directory     : ${{ inputs.source-code-directory }}"
+          echo "🔑 Sonar Project Key         : ${{ inputs.sonar-project-key }}"
+          echo "🌐 Sonar Host URL            : ${{ inputs.sonar-host-url }}"
+
+      - name: 📦 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Coverage Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+        continue-on-error: true
+
+      - name: 📂 Check for lcov.info
+        id: check-coverage
+        run: |
+          if [[ -f coverage/lcov.info ]]; then
+            echo "has-coverage=true" >> $GITHUB_OUTPUT
+            echo "✅ Found coverage file: coverage/lcov.info"
+          else
+            echo "has-coverage=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Coverage file not found. Sonar will scan without coverage."
+          fi
+
+      - name: 🔍 Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar-token }}
+          SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ inputs.sonar-project-key }}
+            -Dsonar.host.url=${{ inputs.sonar-host-url }}
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.sources=${{ inputs.source-code-directory }}
+            -Dsonar.tests=${{ inputs.source-code-directory }}
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/scripts/**,**/*.spec.ts,**/test-helpers/**
+            -Dsonar.test.inclusions=**/*.spec.ts
+            ${{ steps.check-coverage.outputs.has-coverage == 'true' && '-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info' || '' }}
+
+      - name: ✅ Check SonarQube Quality Gate
+        if: ${{ !inputs.ignore-sonar-quality }}
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar-token }}
+          SONAR_HOST_URL: ${{ inputs.sonar-host-url }}

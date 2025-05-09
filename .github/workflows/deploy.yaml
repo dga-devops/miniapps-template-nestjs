@@ -1,0 +1,114 @@
+name: 🚀 Deploy Service
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        required: true
+        type: string
+      aws-role-to-assume:
+        required: true
+        type: string
+      image-name:
+        required: true
+        type: string
+      image-tag:
+        required: true
+        type: string
+      cluster-name:
+        required: true
+        type: string
+      service-name:
+        required: true
+        type: string
+      task-definition:
+        required: true
+        type: string
+      container-name:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: 📋 Log Inputs
+        id: log-inputs
+        run: |
+          echo "AWS Region        : ${{ inputs.aws-region }}"
+          echo "Role to Assume    : ${{ inputs.aws-role-to-assume }}"
+          echo "Image Name        : ${{ inputs.image-name }}"
+          echo "Image Tag         : ${{ inputs.image-tag }}"
+          echo "Cluster Name      : ${{ inputs.cluster-name }}"
+          echo "Service Name      : ${{ inputs.service-name }}"
+          echo "Task Definition   : ${{ inputs.task-definition }}"
+          echo "Container Name    : ${{ inputs.container-name }}"
+          
+          echo "region=$(echo '${{ inputs.aws-region }}' | xargs)" >> $GITHUB_OUTPUT
+          echo "role=$(echo '${{ inputs.aws-role-to-assume }}' | xargs)" >> $GITHUB_OUTPUT      
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.log-inputs.outputs.role }}
+          aws-region: ${{ steps.log-inputs.outputs.region }}
+
+      - name: 🔐 Amazon ECR Login
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🔍 Verify Image Exists in Amazon ECR
+        run: |
+          registry=${{ steps.ecr-login.outputs.registry }}
+          image="${registry}/${{ inputs.image-name }}:${{ inputs.image-tag }}"
+          echo "Verifying ECR image: $image"
+
+          aws ecr describe-images --repository-name "${{ inputs.image-name }}" \
+            --image-ids imageTag="${{ inputs.image-tag }}" > /dev/null \
+            || { echo "❌ Image tag not found."; exit 1; }
+
+      - name: 📥 Download Current Task Definition
+        id: download-task
+        run: |
+          name=${{ inputs.task-definition }}
+          aws ecs describe-task-definition \
+            --task-definition "$name" \
+            --query "taskDefinition" > current.json
+
+          jq 'del(
+            .taskDefinitionArn, .revision, .status,
+            .requiresAttributes, .compatibilities,
+            .registeredAt, .registeredBy
+          )' current.json > cleaned.json
+
+          echo "task-definition-path=cleaned.json" >> $GITHUB_OUTPUT
+
+      - name: 🛠 Render Updated Task Definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.download-task.outputs.task-definition-path }}
+          container-name: ${{ inputs.container-name }}
+          image: ${{ steps.ecr-login.outputs.registry }}/${{ inputs.image-name }}:${{ inputs.image-tag }}
+
+      - name: 🚀 Deploy to ECS
+        id: deploy
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ inputs.service-name }}
+          cluster: ${{ inputs.cluster-name }}
+          wait-for-service-stability: true
+          force-new-deployment: true
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "::notice::----------------------------------------"
+          echo "::notice::✅ Deployment Summary"
+          echo "::notice::Task Definition: ${{ steps.deploy.outputs.task-definition-arn }}"
+          echo "::notice::Service        : ${{ inputs.service-name }}"
+          echo "::notice::Cluster        : ${{ inputs.cluster-name }}"
+          echo "::notice::Image          : ${{ steps.ecr-login.outputs.registry }}/${{ inputs.image-name }}:${{ inputs.image-tag }}"
+          echo "::notice::----------------------------------------"

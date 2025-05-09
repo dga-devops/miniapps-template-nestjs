@@ -1,0 +1,115 @@
+name: 📆 🚀 Build & Push Image
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        required: true
+        type: string
+      aws-role-to-assume:
+        required: true
+        type: string
+      image-name:
+        required: true
+        type: string
+      image-tag:
+        required: true
+        type: string
+      build-spec:
+        required: false
+        type: string
+        default: Dockerfile
+      build-args:
+        required: false
+        type: string
+
+jobs:
+  build-push:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: 📋 Log Inputs
+        id: log-inputs
+        run: |
+          echo "🔹 Region      : ${{ inputs.aws-region }}"
+          echo "🔹 Role        : ${{ inputs.aws-role-to-assume }}"
+          echo "🔹 Image Name  : ${{ inputs.image-name }}"
+          echo "🔹 Image Tag   : ${{ inputs.image-tag }}"
+          echo "🔹 Build Spec  : ${{ inputs.build-spec }}"
+          echo "🔹 Build Args  : ${{ toJson(inputs.build-args) }}"
+
+          echo "region=$(echo '${{ inputs.aws-region }}' | xargs)" >> $GITHUB_OUTPUT
+          echo "role=$(echo '${{ inputs.aws-role-to-assume }}' | xargs)" >> $GITHUB_OUTPUT
+
+      - name: 🗒️ Checkout Source
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.log-inputs.outputs.role }}
+          aws-region: ${{ steps.log-inputs.outputs.region }}
+
+      - name: 🔐 Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 📦 Cache Docker Layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ inputs.image-name }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: 🏗️ Build and Push with Buildx
+        id: buildx
+        run: |
+          REGISTRY=${{ steps.ecr.outputs.registry }}
+          IMAGE_NAME="${{ inputs.image-name }}"
+          IMAGE_TAG="${{ inputs.image-tag }}"
+          DOCKERFILE="${{ inputs.build-spec }}"
+
+          # Determine latest tag
+          if [[ "$DOCKERFILE" == *.baseimage ]]; then
+            LATEST_TAG="baseimage-latest"
+          elif [[ "$DOCKERFILE" == *.testimage ]]; then
+            LATEST_TAG="testimage-latest"
+          else
+            LATEST_TAG="latest"
+          fi
+
+          # Convert array of build args
+          INPUT_BUILD_ARGS="${{ inputs.build-args }}"
+          read -ra ARR <<< "$INPUT_BUILD_ARGS"        
+          BUILD_ARGS=""
+          for arg in "${ARR[@]}"; do
+            BUILD_ARGS+="--build-arg $arg "
+          done
+ 
+
+          echo "⏳ Building $REGISTRY/$IMAGE_NAME:$IMAGE_TAG with $DOCKERFILE"
+          docker buildx build \
+            --file "$DOCKERFILE" \
+            $BUILD_ARGS \
+            --tag "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" \
+            --tag "$REGISTRY/$IMAGE_NAME:$LATEST_TAG" \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new \
+            --push \
+            .
+
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+          echo "imageNameTag=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "imageNameTagLatest=$REGISTRY/$IMAGE_NAME:$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: ✅ Summary
+        run: |
+          echo "::notice::Pushed: ${{ steps.buildx.outputs.imageNameTag }}"
+          echo "::notice::Latest: ${{ steps.buildx.outputs.imageNameTagLatest }}"

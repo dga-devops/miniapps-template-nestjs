@@ -1,0 +1,8 @@
+.idea
+source/node_modules
+source/dist
+source/coverage
+coverage
+scripts
+sonar-project.properties
+.scannerwork

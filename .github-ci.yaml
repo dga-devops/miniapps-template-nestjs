@@ -1,0 +1,26 @@
+env:
+  NAME: miniapps-template-nestjs
+
+  RUN_UNIT_TEST: true
+  IGNORE_UNIT_TEST_ERROR: false
+  TEST_IMAGE_NAME: miniapps-template-nestjs
+  TEST_IMAGE_TAG: testimage-latest
+
+  # SONAR SCAN
+  RUN_SONAR: true
+  IGNORE_SONAR_QUALITY: true
+  SONAR_PROJECT_KEY: miniapps-template-nestjs
+  SONAR_HOST_URL: http://ec2-43-208-103-222.ap-southeast-7.compute.amazonaws.com
+  SONAR_SCAN_SOURCE_CODE_TARGET: .
+
+  # Build spec
+  IMAGE_NAME: miniapps-template-nestjs
+
+  # AWS
+  AWS_REGION: ap-southeast-7
+  AWS_ROLE_TO_ASSUME: arn:aws:iam::877502627026:role/github
+
+  # Ingress
+  DOMAIN: superapps-th.cloud
+  SUB_DOMAIN: miniapps-dev
+  PATH_PATTERN: /cp/temp/app/api

@@ -1,0 +1,43 @@
+name: 🚀 CD  🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+      image-tag:
+        description: 'Image tag to deploy'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  initial:
+    name: 🔸 Initial
+    uses: ./.github/workflows/init-vars.yaml
+
+  deploy:
+    name: 🔸 Deploy
+    needs: [ initial ]
+    uses: ./.github/workflows/deploy.yaml
+    with:
+      aws-region: ${{ needs.initial.outputs.aws-region }}
+      aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}
+      image-name: ${{ needs.initial.outputs.image-name }}
+      image-tag: ${{ needs.initial.outputs.image-tag }}
+      cluster-name: ${{ needs.initial.outputs.cluster-name }}
+      service-name: ${{ needs.initial.outputs.service-name }}
+      task-definition: ${{ needs.initial.outputs.task-definition }}
+      container-name: ${{ needs.initial.outputs.container-name }}
+
+

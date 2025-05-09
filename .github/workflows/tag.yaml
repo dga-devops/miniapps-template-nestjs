@@ -1,0 +1,33 @@
+name: 🏷️ Tag Image
+
+on:
+  push:
+    tags:
+      - v*
+      - baseimage-v*
+      - testimage-v*
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  initial:
+    name: 🔸 Initial
+    uses: ./.github/workflows/init-vars.yaml
+
+  build-push:
+    name: 📦🚀 Build & Push
+    needs: [ initial ]
+    uses: ./.github/workflows/build-push.yaml
+    with:
+      aws-region: ${{ needs.initial.outputs.aws-region }}
+      aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}
+      image-name: ${{ needs.initial.outputs.image-name }}
+      image-tag: ${{ needs.initial.outputs.image-tag }}
+      build-spec: ${{ needs.initial.outputs.build-spec }}
+      build-args: >
+        BUILD_ENV=${{ needs.initial.outputs.build-env }}
+        BASE_HREF=${{ needs.initial.outputs.path-pattern }}
+
+

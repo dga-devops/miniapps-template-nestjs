@@ -1,0 +1,103 @@
+name: 🧪 Unit Test NestJS
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        required: true
+        type: string
+      aws-role-to-assume:
+        required: true
+        type: string
+      ignore-unit-test-error:
+        required: false
+        type: boolean
+        default: false
+      source-code-directory:
+        required: false
+        type: string
+        default: source
+      test-image-name:
+        required: true
+        type: string
+      test-image-tag:
+        required: true
+        type: string
+
+    outputs:
+      artifact-id:
+        value: ${{ jobs.unit-test-angular.outputs.artifact-id }}
+
+jobs:
+  unit-test-angular:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    outputs:
+      artifact-id: ${{ steps.upload-coverage.outputs.artifact-id }}
+
+    steps:
+      - name: 📋 Log Inputs
+        id: log-inputs
+        run: |
+          echo "🔹 Region: ${{ inputs.aws-region }}"
+          echo "🔹 Role: ${{ inputs.aws-role-to-assume }}"
+          echo "📁 Source Dir: ${{ inputs.source-code-directory }}"
+          echo "🧪 Test Image: ${{ inputs.test-image-name }}:${{ inputs.test-image-tag }}"
+          
+          echo "region=$(echo '${{ inputs.aws-region }}' | xargs)" >> $GITHUB_OUTPUT
+          echo "role=$(echo '${{ inputs.aws-role-to-assume }}' | xargs)" >> $GITHUB_OUTPUT
+
+      - name: 🗂️ Checkout Source
+        uses: actions/checkout@v4
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.log-inputs.outputs.role }}
+          aws-region: ${{ steps.log-inputs.outputs.region }}
+
+      - name: 🔐 Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🧪 Run NestJS Unit Tests
+        id: run-unit-test
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/${{ inputs.test-image-name }}:${{ inputs.test-image-tag }}"
+          SRC_DIR="${{ github.workspace }}/${{ inputs.source-code-directory }}"/src
+          COVERAGE_DIR="${{ github.workspace }}/coverage"
+
+          echo "🔎 Running tests in $SRC_DIR"
+          echo "📁 Mount coverage to $COVERAGE_DIR"
+          mkdir -p "$COVERAGE_DIR"
+
+          if [ ! -d "$SRC_DIR" ]; then
+            echo "❌ ERROR: Source directory not found: $SRC_DIR"
+            exit 1
+          fi
+          
+          docker run --rm \
+            -v ${SRC_DIR}/src:/usr/src/app/src \
+            -v ${SRC_DIR}/test:/usr/src/app/test \
+            -v $COVERAGE_DIR:/usr/src/app/coverage \
+            --workdir /usr/src/app \
+            "$IMAGE" /bin/bash -c "npm run test:cov"
+
+          echo "coverage-dir=$COVERAGE_DIR" >> $GITHUB_OUTPUT
+
+      - name: 📦 Upload Coverage Artifact
+        id: upload-coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: ${{ steps.run-unit-test.outputs.coverage-dir }}
+
+      - name: 🧹 Clear Docker Cache
+        if: always()
+        uses: AutoModality/action-clean@v1
+
+      - name: 📝 Summary
+        run: |
+          echo "::notice::📦 Coverage Artifact ID: ${{ steps.upload-coverage.outputs.artifact-id }}"
