@@ -29,7 +29,7 @@ on:
         value: ${{ jobs.unit-test-angular.outputs.artifact-id }}
 
 jobs:
-  unit-test-angular:
+  unit-test-nestjs:
     runs-on: self-hosted
     timeout-minutes: 10
 
@@ -82,7 +82,7 @@ jobs:
             -v ${SRC_DIR}/test:/usr/src/app/test \
             -v $COVERAGE_DIR:/usr/src/app/coverage \
             --workdir /usr/src/app \
-            "$IMAGE" /bin/bash -c "npm run test:cov"
+            "$IMAGE" "npm run test:cov"
 
           echo "coverage-dir=$COVERAGE_DIR" >> $GITHUB_OUTPUT
 
