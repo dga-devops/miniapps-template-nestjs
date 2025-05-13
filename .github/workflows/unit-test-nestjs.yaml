@@ -77,7 +77,7 @@ jobs:
             exit 1
           fi
           
-          docker run --rm \
+          docker run --pull=always --rm \
             -v ${SRC_DIR}/src:/usr/src/app/src \
             -v ${SRC_DIR}/test:/usr/src/app/test \
             -v $COVERAGE_DIR:/usr/src/app/coverage \
