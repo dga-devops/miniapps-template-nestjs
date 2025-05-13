@@ -65,7 +65,7 @@ jobs:
         id: run-unit-test
         run: |
           IMAGE="${{ steps.ecr.outputs.registry }}/${{ inputs.test-image-name }}:${{ inputs.test-image-tag }}"
-          SRC_DIR="${{ github.workspace }}/${{ inputs.source-code-directory }}"/src
+          SRC_DIR="${{ github.workspace }}/${{ inputs.source-code-directory }}"
           COVERAGE_DIR="${{ github.workspace }}/coverage"
 
           echo "🔎 Running tests in $SRC_DIR"
