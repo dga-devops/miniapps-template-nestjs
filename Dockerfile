@@ -5,7 +5,7 @@ FROM 877502627026.dkr.ecr.ap-southeast-7.amazonaws.com/miniapps-template-nestjs:
 WORKDIR /usr/src/app
 
 # Copy app source
-ADD ./source .
+COPY ./source .
 
 # Build source
 RUN npm run build
@@ -20,8 +20,8 @@ ENV TZ=Asia/Bangkok
 
 # Set timezone (minimal)
 RUN apk add --no-cache tzdata \
-    && cp /usr/share/zoneinfo/$TZ /etc/localtime \
-    && echo $TZ > /etc/timezone \
+    && cp /usr/share/zoneinfo/"${TZ}" /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
     && apk del tzdata \
     && rm -rf /var/cache/apk/*
 

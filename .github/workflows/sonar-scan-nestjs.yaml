@@ -41,6 +41,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage
+          path: coverage
         continue-on-error: true
 
       - name: 📂 Check for lcov.info

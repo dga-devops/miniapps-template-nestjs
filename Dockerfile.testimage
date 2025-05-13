@@ -2,7 +2,7 @@ FROM 877502627026.dkr.ecr.ap-southeast-7.amazonaws.com/miniapps-template-nestjs:
 
 WORKDIR /usr/src/app
 
-ADD ./source .
+COPY ./source .
 
 CMD ["npm", "run", "test:cov"]
 
