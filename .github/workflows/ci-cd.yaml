@@ -66,7 +66,7 @@ jobs:
   deploy:
     name: 🔸 Deploy
     needs: [ initial, build-push ]
-    if: ${{ always() && (needs.initial.outputs.is-deploy == 'true' || needs.build-push.result == 'skipped') }}
+    if: ${{ always() && (needs.initial.outputs.is-deploy == 'true' && needs.build-push.result == 'success') }}
     uses: dga-devops/miniapps-template-angular/.github/workflows/deploy.yaml@develop
     with:
       aws-region: ${{ needs.initial.outputs.aws-region }}
