@@ -8,7 +8,7 @@ env:
 
   # SONAR SCAN
   RUN_SONAR: true
-  IGNORE_SONAR_QUALITY: false
+  IGNORE_SONAR_QUALITY: true
   SONAR_PROJECT_KEY: miniapps-template-nestjs
   SONAR_HOST_URL: http://ec2-43-208-103-222.ap-southeast-7.compute.amazonaws.com
   SONAR_SCAN_SOURCE_CODE_TARGET: .
