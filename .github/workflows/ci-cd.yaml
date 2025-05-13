@@ -1,4 +1,4 @@
-name: 🚀 CI & CD New 🚀
+name: 🚀 CI & CD 🚀
 
 on:
   pull_request:
@@ -23,6 +23,34 @@ jobs:
   initial:
     name: 🔸 Initial
     uses: dga-devops/miniapps-template-angular/.github/workflows/init-vars.yaml@develop
+
+  initial-debug:
+    name: 🔸 Initial Test debug
+    needs: initial
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        run: |
+          echo "is-test: ${{ needs.initial.outputs.is-test }}"
+          echo "aws-region: ${{ needs.initial.outputs.aws-region }}"          
+          echo "aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}"
+          echo "ignore-unit-test-error: ${{ needs.initial.outputs.ignore-unit-test-error }}"
+          echo "test-image-name: ${{ needs.initial.outputs.test-image-name }}"
+          echo "test-image-tag: ${{ needs.initial.outputs.test-image-tag }}"
+
+  initial-debug-self-hosted:
+    name: 🔸 Initial Test debug self-hosted
+    needs: initial
+    runs-on: self-hosted
+    steps:
+      - name: Debug
+        run: |
+          echo "is-test: ${{ needs.initial.outputs.is-test }}"
+          echo "aws-region: ${{ needs.initial.outputs.aws-region }}"          
+          echo "aws-role-to-assume: ${{ needs.initial.outputs.aws-role-to-assume }}"
+          echo "ignore-unit-test-error: ${{ needs.initial.outputs.ignore-unit-test-error }}"
+          echo "test-image-name: ${{ needs.initial.outputs.test-image-name }}"
+          echo "test-image-tag: ${{ needs.initial.outputs.test-image-tag }}"
 
   test:
     name: 🔸 Test
