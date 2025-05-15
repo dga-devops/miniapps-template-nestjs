@@ -67,7 +67,7 @@ jobs:
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.sources=${{ inputs.source-code-directory }}
             -Dsonar.tests=${{ inputs.source-code-directory }}
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/scripts/**,**/*.spec.ts,**/test-helpers/**
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,**/scripts/**,**/*.spec.ts,**/test-helpers/**,**/__test__/**
             -Dsonar.test.inclusions=**/*.spec.ts
             ${{ steps.check-coverage.outputs.has-coverage == 'true' && '-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info' || '' }}
 
